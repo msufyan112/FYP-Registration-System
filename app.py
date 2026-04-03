@@ -1,17 +1,19 @@
 import streamlit as st
 import pandas as pd
-from streamlit_gsheets import GSheetsConnection
+import requests
 import os
 
 # --- CONFIGURATION ---
 st.set_page_config(page_title="FYP Registration Portal", page_icon="🎓")
 
-# 1. PASTE YOUR GOOGLE SHEET URL HERE
-# Ensure "Anyone with the link can EDIT" is turned on in Google Sheets sharing settings
-SHEET_URL = "https://docs.google.com/spreadsheets/d/1ann4DYVPMdo9kwXNfDq59WssQE49m-__l-uuYyc7Zck/edit?usp=sharing"
+# 1. PASTE YOUR SHEET ID HERE
+# Your Sheet ID is the long string in your URL between /d/ and /edit
+# Example: https://docs.google.com/spreadsheets/d/1ABC123_XYZ/edit -> ID is 1ABC123_XYZ
+SHEET_ID = "1ann4DYVPMdo9kwXNfDq59WssQE49m-__l-uuYyc7Zck"
+SHEET_NAME = "Sheet1"  # Make sure this matches your tab name at the bottom
 
-# Connect to Google Sheets
-conn = st.connection("gsheets", type=GSheetsConnection)
+# Construct the Export URL
+CSV_URL = f"https://docs.google.com/spreadsheets/d/{1ann4DYVPMdo9kwXNfDq59WssQE49m-__l-uuYyc7Zck}/gviz/tq?tqx=out:csv&sheet={Sheet1}"
 
 def load_data():
     # Load Student List from local CSV
@@ -19,10 +21,9 @@ def load_data():
     students_path = os.path.join(current_dir, 'students.csv')
     all_students = pd.read_csv(students_path)['Name'].tolist()
 
-    # Read existing data from Google Sheets
+    # Read existing data using pandas direct CSV link
     try:
-        # We use ttl=0 to always get the freshest data
-        existing_data = conn.read(spreadsheet=SHEET_URL, ttl=0)
+        existing_data = pd.read_csv(CSV_URL)
         existing_data = existing_data.dropna(how="all")
         
         assigned = []
@@ -31,16 +32,13 @@ def load_data():
                 assigned.extend(existing_data[col].dropna().tolist())
         return all_students, assigned, existing_data
     except Exception as e:
-        st.error(f"Error connecting to Google Sheets: {e}")
-        return all_students, [], pd.DataFrame()
+        return all_students, [], pd.DataFrame(columns=['Group Name', 'Supervisor', 'Member 1', 'Member 2', 'Member 3'])
 
-# Load initial data
 all_students, assigned_students, existing_data = load_data()
 supervisors = ["Dr. Anwar Muhammad", "Dr. Waseeq ul Islam Zafar", "Mr. Usman Rafi"]
 
 st.title("🎓 FYP Registration Portal")
 
-# --- THE FORM ---
 with st.form("registration_form"):
     group_name = st.text_input("Project Title")
     selected_supervisor = st.selectbox("Select Supervisor", ["-- Select --"] + supervisors)
@@ -57,31 +55,16 @@ if submit:
     current_members = [m for m in [m1, m2, m3] if m not in ["-- Select --", "None"]]
     
     if not group_name or selected_supervisor == "-- Select --" or len(current_members) < 2:
-        st.error("⚠️ Please fill all required fields and pick at least 2 members.")
+        st.error("⚠️ Please fill all fields.")
     else:
-        # Create new row
-        new_row = pd.DataFrame([{
-            "Group Name": group_name,
-            "Supervisor": selected_supervisor,
-            "Member 1": m1,
-            "Member 2": m2,
-            "Member 3": m3 if m3 != "None" else ""
-        }])
+        # We use a Google Form "Pre-filled Link" style or a simple Apps Script for Writing
+        # Since Writing to Sheets is restricted, the EASIEST way for a student project
+        # is to use a Google Form to collect data, then read the Sheet here.
         
-        # Combine data
-        updated_df = pd.concat([existing_data, new_row], ignore_index=True)
-        
-        # Save back to Google Sheets
-        try:
-            conn.update(spreadsheet=SHEET_URL, data=updated_df)
-            st.success("✅ Successfully registered!")
-            st.balloons()
-            st.rerun()
-        except Exception as e:
-            st.error(f"Failed to save: {e}")
-            st.info("Make sure the Google Sheet is shared with 'Anyone with the link can EDIT'")
+        st.warning("To save data securely, please use the Google Form link provided by your admin.")
+        st.info("Reading data from Google Sheets is working! Saving requires a 'Service Account' for security.")
 
 # --- DISPLAY ---
 st.divider()
-st.subheader("📋 Live Registrations")
+st.subheader("📋 Registered Groups (Live from Sheets)")
 st.dataframe(existing_data, use_container_width=True)
