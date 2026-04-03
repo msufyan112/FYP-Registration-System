@@ -13,7 +13,7 @@ SHEET_ID = "1ann4DYVPMdo9kwXNfDq59WssQE49m-__l-uuYyc7Zck"
 SHEET_NAME = "Sheet1"  # Make sure this matches your tab name at the bottom
 
 # Construct the Export URL
-CSV_URL = f"https://docs.google.com/spreadsheets/d/{1ann4DYVPMdo9kwXNfDq59WssQE49m-__l-uuYyc7Zck}/gviz/tq?tqx=out:csv&sheet={Sheet1}"
+CSV_URL = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/gviz/tq?tqx=out:csv&sheet={SHEET_NAME}"
 
 def load_data():
     # Load Student List from local CSV
